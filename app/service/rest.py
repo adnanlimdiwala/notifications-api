@@ -123,11 +123,106 @@ def update_service(service_id):
     current_data = dict(service_schema.dump(fetched_service).data.items())
     service_schema.set_override_flag(request.get_json().get('permissions') is not None)
     current_data.update(request.get_json())
+    service_schema.load(current_data)
     try:
-        update_dict = service_schema.load(current_data).data
-    except ValueError as e:
+        # print(current_data)
+        # print('test')
+
+        def update_service_model():
+            from app.dao.service_permissions_dao import dao_fetch_service_permissions
+            from app.models import ServicePermission, Service, DVLAOrganisation, User, Organisation,\
+                INTERNATIONAL_SMS_TYPE, LETTER_TYPE
+            service = dao_fetch_service_by_id(current_data.get("id"))
+            service_id = current_data.get("id")
+
+            data_models = [
+                {
+                    "name": "dvla_organisation",
+                    "data_model": DVLAOrganisation
+                },
+                {
+                    "name": "organisation",
+                    "data_model": Organisation
+                },
+                {
+                    "name": "created_by",
+                    "data_model": User
+                },
+                {
+                    "name": "users",
+                    "data_model": User
+                },
+                {
+                    "name": "permissions",
+                    "data_model": ServicePermission,
+                    "id": "service_id",
+                    "val": "permission"
+                }
+            ]
+
+            def get_data_model_value(name, val):
+                return [d.get(val) for d in data_models if d.get("name") == name][0]
+
+            def deprecate_convert_flag(flag, notify_type):
+                if flag and notify_type not in [p.permission for p in service.permissions]:
+                    permission = ServicePermission(service_id=service_id, permission=notify_type)
+                    service.permissions.append(permission)
+                elif flag is False and notify_type in [p.permission for p in service.permissions]:
+                    for p in service.permissions:
+                        if p.permission == notify_type:
+                            service.permissions.remove(p)
+
+            for key in current_data.keys():
+                try:
+                    if hasattr(service, key):
+                        print("key:{}, val:{}, type:{}".format(
+                            key, current_data.get(key), type(current_data.get(key))))
+
+                        if key in [d.get("name") for d in data_models]:
+                            if type(current_data.get(key)) is list:
+                                list_obj = current_data.get(key)
+                                for item in list_obj:
+                                    if type(item) is str:
+                                        item_id = get_data_model_value(key, "id")
+                                        val = get_data_model_value(key, "val")
+                                        data_model = get_data_model_value(key, "data_model")
+                                        obj = data_model(**{item_id: service_id, val: item})
+                                    elif type(item) is ServicePermission:
+                                        if item.permission not in [p.permission for p in service.permissions]:
+                                            service.permissions.append(item)
+                                    elif item not in [v.id for v in getattr(service, key)]:
+                                        print("x:{}, {}".format([v.id for v in getattr(service, key)], item))
+                                        data_model = get_data_model_value(key, "data_model")
+                                        obj = data_model(id=item)
+                                        getattr(service, key).append(obj)
+                            elif current_data.get(key) is not None and\
+                             getattr(service, key).id != current_data.get(key):
+                                print("set_attr:{}, {}".format(getattr(service, key).id, current_data.get(key)))
+                                data_model = [d.get("data_model") for d in data_models if d.get("name") == key][0]
+                                setattr(service, key, data_model(id=current_data.get(key)))
+
+                        elif key == 'can_send_international_sms':
+                            deprecate_convert_flag(current_data.get(key), INTERNATIONAL_SMS_TYPE)
+
+                        elif key == 'can_send_letters':
+                            deprecate_convert_flag(current_data.get(key), LETTER_TYPE)
+
+                        else:
+                            setattr(service, key, current_data.get(key))
+
+                except Exception as e:
+                    print(e)
+                    raise
+
+            return service
+        service = update_service_model()
+
+        print(service.__dict__)
+        # service = service_schema.load(current_data).data
+    except Exception as e:
+        print(e)
         raise InvalidRequest(str(e), status_code=400)
-    dao_update_service(update_dict)
+    dao_update_service(service)
 
     if service_going_live:
         send_notification_to_service_users(

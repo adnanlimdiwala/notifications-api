@@ -492,6 +492,7 @@ def test_update_service_flags_with_service_without_default_service_permissions(c
     assert result['data']['can_send_letters'] is True
     assert result['data']['can_send_international_sms'] is True
     assert set(result['data']['permissions']) == set([LETTER_TYPE, INTERNATIONAL_SMS_TYPE])
+    # assert False
 
 
 def test_update_service_flags_will_remove_service_permissions(client, notify_db, notify_db_session):
@@ -516,6 +517,7 @@ def test_update_service_flags_will_remove_service_permissions(client, notify_db,
     assert resp.status_code == 200
     assert result['data']['can_send_international_sms'] is False
     assert set(result['data']['permissions']) == set([SMS_TYPE, EMAIL_TYPE])
+    assert False
 
 
 def test_update_permissions_will_override_permission_flags(client, service_with_no_permissions):

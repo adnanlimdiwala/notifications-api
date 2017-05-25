@@ -184,39 +184,41 @@ class ServiceSchema(BaseSchema):
     override_flag = False
 
     def service_permissions(self, service):
-        permissions = []
+        # permissions = []
         str_permissions = []
 
         perms = dao_fetch_service_permissions(service.id)
         for p in perms:
-            permission = {
-                "service_id": service.id,
-                "permission": p.permission
-            }
-            permissions.append(permission)
+            # permission = {
+            #     "service_id": service.id,
+            #     "permission": p.permission
+            # }
+            # permissions.append(permission)
             str_permissions.append(p.permission)
 
-        def deprecate_convert_flags_to_permissions():
-            def convert_flags(flag, notify_type):
-                if flag and notify_type not in str_permissions:
-                    permission = {
-                        "service_id": service.id,
-                        "permission": notify_type
-                    }
-                    permissions.append(permission)
-                elif flag is False and notify_type in str_permissions:
-                    permission = {
-                        "service_id": service.id,
-                        "permission": notify_type
-                    }
-                    permissions.remove(permission)
+        # def deprecate_convert_flags_to_permissions():
+        #     def convert_flags(flag, notify_type):
+        #         if flag and notify_type not in str_permissions:
+        #             permission = {
+        #                 "service_id": service.id,
+        #                 "permission": notify_type
+        #             }
+        #             permissions.append(permission)
+        #         elif flag is False and notify_type in str_permissions:
+        #             permission = {
+        #                 "service_id": service.id,
+        #                 "permission": notify_type
+        #             }
+        #             permissions.remove(permission)
 
-            convert_flags(service.can_send_international_sms, INTERNATIONAL_SMS_TYPE)
-            convert_flags(service.can_send_letters, LETTER_TYPE)
+        #     convert_flags(service.can_send_international_sms, INTERNATIONAL_SMS_TYPE)
+        #     convert_flags(service.can_send_letters, LETTER_TYPE)
 
-        deprecate_convert_flags_to_permissions()
+        # deprecate_convert_flags_to_permissions()
 
-        return permissions
+        # return permissions
+        # print(str_permissions)
+        return str_permissions
 
     class Meta:
         model = models.Service
@@ -276,15 +278,15 @@ class ServiceSchema(BaseSchema):
                 convert_flag(in_data["can_send_international_sms"], INTERNATIONAL_SMS_TYPE)
                 convert_flag(in_data["can_send_letters"], LETTER_TYPE)
 
-            if self.override_flag:
-                deprecate_override_flags()
-            else:
-                deprecate_convert_flags_to_permissions()
+            # if self.override_flag:
+            #     deprecate_override_flags()
+            # else:
+            #     deprecate_convert_flags_to_permissions()
 
     @post_dump
     def format_as_string_array(self, in_data):
-        if isinstance(in_data, dict) and 'permissions' in in_data:
-            in_data['permissions'] = [p.get("permission") for p in in_data['permissions']]
+        # if isinstance(in_data, dict) and 'permissions' in in_data:
+        #     in_data['permissions'] = [p.get("permission") for p in in_data['permissions']]
         return in_data
 
     def set_override_flag(self, flag):
