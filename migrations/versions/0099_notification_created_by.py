@@ -1,14 +1,14 @@
 """add created_by col to notification
 
-Revision ID: 0098_notification_created_by
-Revises: 0097_notnull_inbound_provider
+Revision ID: 0099_notification_created_by
+Revises: 0098_service_inbound_api
 Create Date: 2017-06-13 10:53:25.032202
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '0098_notification_created_by'
-down_revision = '0097_notnull_inbound_provider'
+revision = '0099_notification_created_by'
+down_revision = '0098_service_inbound_api'
 
 from alembic import op
 import sqlalchemy as sa
