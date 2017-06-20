@@ -100,6 +100,8 @@ class User(db.Model):
         secondary='user_to_service',
         backref=db.backref('user_to_service', lazy='dynamic'))
 
+    association_proxy('services_2', 'user_to_service_2')
+
     @property
     def password(self):
         raise AttributeError("Password not readable")
@@ -256,6 +258,18 @@ class ServicePermission(db.Model):
 
     def __repr__(self):
         return '<{} has service permission: {}>'.format(self.service_id, self.permission)
+
+
+class UserToService(db.Model):
+    __tablename__ = "user_to_service_2"
+
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'),
+                        primary_key=True, index=True, nullable=False)
+    service_id = db.Column(UUID(as_uuid=True), db.ForeignKey('services.id'),
+                           index=True, primary_key=True, nullable=False)
+
+    services = db.relationship(
+        Service, backref=db.backref("services_2", cascade="all, delete-orphan"))
 
 
 MOBILE_TYPE = 'mobile'
