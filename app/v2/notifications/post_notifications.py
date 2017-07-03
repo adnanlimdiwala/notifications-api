@@ -12,7 +12,9 @@ from app.notifications.validators import (
     validate_and_format_recipient,
     check_rate_limiting,
     service_has_permission,
-    validate_template
+    validate_template,
+    assert_service_has_permission,
+    recast_invalid_request_exception
 )
 from app.schema_validation import validate
 from app.utils import get_public_notify_type_text
@@ -26,20 +28,23 @@ from app.v2.errors import BadRequestError
 
 
 @v2_notification_blueprint.route('/<notification_type>', methods=['POST'])
+@recast_invalid_request_exception(
+    BadRequestError,
+    'Cannot schedule notifications (this feature is invite-only)',
+    notification_type_target=SCHEDULE_NOTIFICATIONS
+)
+@recast_invalid_request_exception(BadRequestError, 'Cannot send {}')
 def post_notification(notification_type):
     if notification_type == EMAIL_TYPE:
         form = validate(request.get_json(), post_email_request)
     else:
         form = validate(request.get_json(), post_sms_request)
 
-    if not service_has_permission(notification_type, authenticated_service.permissions):
-        raise BadRequestError(message="Cannot send {}".format(
-            get_public_notify_type_text(notification_type, plural=True)))
+    assert_service_has_permission(notification_type, authenticated_service.permissions)
 
     scheduled_for = form.get("scheduled_for", None)
     if scheduled_for:
-        if not service_has_permission(SCHEDULE_NOTIFICATIONS, authenticated_service.permissions):
-            raise BadRequestError(message="Cannot schedule notifications (this feature is invite-only)")
+        assert_service_has_permission(SCHEDULE_NOTIFICATIONS, authenticated_service.permissions)
 
     check_rate_limiting(authenticated_service, api_user)
 

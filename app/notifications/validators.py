@@ -119,3 +119,53 @@ def validate_template(template_id, personalisation, service, notification_type):
     if template.template_type == SMS_TYPE:
         check_sms_content_char_count(template_with_content.content_count)
     return template, template_with_content
+
+
+from functools import wraps
+from app.errors import InvalidRequest
+from app.utils import get_public_notify_type_text
+
+
+def assert_service_has_permission(notify_type, permissions):
+    if not service_has_permission(notify_type, permissions):
+        raise InvalidRequest(
+            {'service': ["Cannot send {}".format(get_public_notify_type_text(notify_type, plural=True))]},
+            status_code=400
+        )
+
+
+def recast_invalid_request_exception(
+        ex_class, exception_text, notification_type_target=None, element_ref=None, status_code=None):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            # except RateLimitError:
+            #     raise
+            # except TooManyRequestsError:
+            #     raise
+            # except BadRequestError:
+            #     raise
+            except InvalidRequest as e:
+                # 
+                if issubclass(e, InvalidRequest):
+                    raise
+                if notification_type_target:
+                    notify_type_text = None
+                else:
+                    notify_type_text = get_public_notify_type_text(kwargs['notification_type'], plural=True)
+
+                if ex_class is InvalidRequest:
+                    if element_ref is None:
+                        raise Exception('Missing element_ref')
+                    if status_code is None:
+                        raise Exception("Missing status code")
+                    errors = {element_ref: [exception_text]}
+                    err = ex_class(errors, status_code)
+                else:
+                    err = ex_class(message=exception_text.format(notify_type_text))
+                print(err)
+                raise err
+        return wrapper
+    return decorator

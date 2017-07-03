@@ -338,6 +338,7 @@ def test_post_sms_notification_returns_400_if_not_allowed_to_send_notification(
     assert error_json['errors'] == [
         {"error": "BadRequestError", "message": expected_error}
     ]
+    assert False
 
 
 def test_post_sms_notification_returns_201_if_allowed_to_send_int_sms(notify_db, notify_db_session, client, mocker):

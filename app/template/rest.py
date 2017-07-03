@@ -17,7 +17,9 @@ from notifications_utils.template import SMSMessageTemplate
 from app.dao.services_dao import dao_fetch_service_by_id
 from app.dao.service_permissions_dao import dao_fetch_service_permissions
 from app.models import SMS_TYPE, EMAIL_TYPE
-from app.notifications.validators import service_has_permission
+from app.notifications.validators import (
+    service_has_permission, assert_service_has_permission, recast_invalid_request_exception
+)
 from app.schemas import (template_schema, template_history_schema)
 
 template_blueprint = Blueprint('template', __name__, url_prefix='/service/<uuid:service_id>/template')
@@ -39,17 +41,25 @@ def _content_count_greater_than_limit(content, template_type):
 
 
 @template_blueprint.route('', methods=['POST'])
+@recast_invalid_request_exception(
+    InvalidRequest,
+    'Creating {} templates is not allowed',
+    element_ref='template_type',
+    status_code=403
+)
 def create_template(service_id):
     fetched_service = dao_fetch_service_by_id(service_id=service_id)
     # permissions needs to be placed here otherwise marshmallow will intefere with versioning
     permissions = fetched_service.permissions
     new_template = template_schema.load(request.get_json()).data
 
-    if not service_has_permission(new_template.template_type, permissions):
-        message = "Creating {} templates is not allowed".format(
-            get_public_notify_type_text(new_template.template_type))
-        errors = {'template_type': [message]}
-        raise InvalidRequest(errors, 403)
+    # if not service_has_permission(new_template.template_type, permissions):
+    #     message = "Creating {} templates is not allowed".format(
+    #         get_public_notify_type_text(new_template.template_type))
+    #     errors = {'template_type': [message]}
+    #     raise InvalidRequest(errors, 403)
+
+    assert_service_has_permission(fetched_template.template_type, fetched_template.service.permissions)
 
     new_template.service = fetched_service
     over_limit = _content_count_greater_than_limit(new_template.content, new_template.template_type)
@@ -64,15 +74,23 @@ def create_template(service_id):
 
 
 @template_blueprint.route('/<uuid:template_id>', methods=['POST'])
+@recast_invalid_request_exception(
+    InvalidRequest,
+    'Updating {} templates is not allowed',
+    element_ref='template_type',
+    status_code=403
+)
 def update_template(service_id, template_id):
     fetched_template = dao_get_template_by_id_and_service_id(template_id=template_id, service_id=service_id)
 
-    if not service_has_permission(fetched_template.template_type, fetched_template.service.permissions):
-        message = "Updating {} templates is not allowed".format(
-            get_public_notify_type_text(fetched_template.template_type))
-        errors = {'template_type': [message]}
+    # if not service_has_permission(fetched_template.template_type, fetched_template.service.permissions):
+    #     message = "Updating {} templates is not allowed".format(
+    #         get_public_notify_type_text(fetched_template.template_type))
+    #     errors = {'template_type': [message]}
 
-        raise InvalidRequest(errors, 403)
+    #     raise InvalidRequest(errors, 403)
+
+    assert_service_has_permission(fetched_template.template_type, fetched_template.service.permissions)
 
     data = request.get_json()
 
