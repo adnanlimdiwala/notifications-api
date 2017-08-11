@@ -30,21 +30,11 @@ def get_inbound_numbers_available():
     return jsonify(data=inbound_numbers)
 
 
-@inbound_number_blueprint.route('/service/<uuid:service_id>', methods=['POST'])
-def post_allocate_inbound_number(service_id):
-    inbound_number = dao_get_inbound_number_for_service(service_id)
+@inbound_number_blueprint.route('/service/<uuid:service_id>', methods=['GET'])
+def get_allocated_inbound_number(service_id):
+    inbound_number = dao_get_inbound_number_for_service(service_id).serialize()
+    return jsonify(data=inbound_number), 200
 
-    if not inbound_number:
-        available_numbers = dao_get_available_inbound_numbers()
-
-        if len(available_numbers) > 0:
-            dao_set_inbound_number_to_service(service_id, available_numbers[0])
-            return '', 204
-        else:
-            return '', 409
-    else:
-        dao_set_inbound_number_active_flag(service_id, active=True)
-        return '', 204
 
 
 @inbound_number_blueprint.route('/<uuid:inbound_number_id>/service/<uuid:service_id>', methods=['POST'])
@@ -59,7 +49,7 @@ def post_set_inbound_number_for_service(inbound_number_id, service_id):
     return '', 204
 
 
-@inbound_number_blueprint.route('/service/<uuid:inbound_number_id>/on', methods=['POST'])
+@inbound_number_blueprint.route('/<uuid:inbound_number_id>/on', methods=['POST'])
 def post_set_inbound_number_on(inbound_number_id):
     dao_set_inbound_number_active_flag(inbound_number_id, active=True)
     return '', 204
