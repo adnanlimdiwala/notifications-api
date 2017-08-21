@@ -505,25 +505,6 @@ def get_yearly_sms_billable_units(service_id):
         })
 
 
-@service_blueprint.route('/<uuid:service_id>/yearly-usage')
-def get_yearly_billing_usage(service_id):
-    try:
-        year = int(request.args.get('year'))
-        results = notification_usage_dao.get_yearly_billing_data(service_id, year)
-        json_result = [{
-            "credits": x[0],
-            "billing_units": x[1],
-            "rate_multiplier": x[2],
-            "notification_type": x[3],
-            "international": x[4],
-            "rate": x[5]
-        } for x in results]
-        return json.dumps(json_result)
-
-    except TypeError:
-        return jsonify(result='error', message='No valid year provided'), 400
-
-
 @service_blueprint.route('/<uuid:service_id>/monthly-usage')
 def get_yearly_monthly_usage(service_id):
     try:
